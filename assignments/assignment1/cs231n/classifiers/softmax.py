@@ -32,8 +32,34 @@ def softmax_loss_naive(W, X, y, reg):
     # regularization!                                                           #
     #############################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+    num_train=len(y)
+    num_class=W.shape[1]
+    flag = True
 
-    pass
+    for i in range(num_train):
+        unnorm_p = X[i].dot(W)
+        unnorm_p -= np.argmax(unnorm_p)
+        exp_unnorm_p = np.exp(unnorm_p)
+        sum_exp_unnorm_p=np.sum(exp_unnorm_p)
+        exp_norm_p = exp_unnorm_p / sum_exp_unnorm_p
+        loss -= np.log(exp_norm_p[y[i]])
+        if not flag:
+            for j in range(num_class): 
+                if j == y[i]:
+                    dW[:,j] += -X[i] + X[i]*exp_norm_p[j]
+                else:
+                    dW[:,j] += X[i]*exp_norm_p[j]
+        else:
+            dW += X[i].reshape(-1,1).dot(exp_norm_p.reshape(1,-1))
+            dW[:,y[i]] -= X[i]
+
+
+    loss /= num_train
+    dW /= num_train
+    loss += reg * np.sum( W * W )
+    dW += 2 * reg * W
+
+
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
@@ -58,7 +84,22 @@ def softmax_loss_vectorized(W, X, y, reg):
     #############################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    num_train=len(y)
+    num_class= W.shape[1]
+
+    unnorm_p = X.dot(W)
+    unnorm_p -= np.argmax(unnorm_p,axis=1).reshape(-1,1)
+    exp_unnorm_p = np.exp(unnorm_p)
+    sum_exp_unnorm_p = np.sum(exp_unnorm_p,axis=1).reshape(-1,1)
+
+    exp_norm_p = exp_unnorm_p / sum_exp_unnorm_p
+
+    norm_p = - np.log(exp_norm_p)
+    loss += np.sum(norm_p[np.arange(num_train),y]) / num_train + reg * np.sum( W * W )
+
+    exp_norm_p[np.arange(num_train),y] -= 1
+
+    dW += X.T.dot(exp_norm_p)/num_train + 2 * reg * W
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
