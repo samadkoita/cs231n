@@ -80,7 +80,9 @@ class TwoLayerNet(object):
         #############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        layer1_lin = X.dot(W1) + b1
+        layer1_nonlin = np.maximum(layer1_lin,0)
+        scores = layer1_nonlin.dot(W2) + b2
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
@@ -90,7 +92,8 @@ class TwoLayerNet(object):
 
         # Compute the loss
         loss = None
-        #############################################################################
+        #####################################################
+########################
         # TODO: Finish the forward pass, and compute the loss. This should include  #
         # both the data loss and L2 regularization for W1 and W2. Store the result  #
         # in the variable loss, which should be a scalar. Use the Softmax           #
@@ -98,7 +101,11 @@ class TwoLayerNet(object):
         #############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        scores_exp = np.exp(scores - np.max(scores,axis=1,keepdims=True))
+        scores_exp_sum = np.sum(scores_exp,axis=1,keepdims=True)
+        scores_exp_norm = scores_exp / scores_exp_sum
+        scores_norm = - np.log(scores_exp_norm)
+        loss = np.sum(scores_norm[np.arange(N),y]) / N + reg * (np.sum(W1**2) + np.sum(W2**2) )
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
@@ -111,7 +118,17 @@ class TwoLayerNet(object):
         #############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        scores_exp_norm[np.arange(N),y] -= 1
+        d_scores = scores_exp_norm / N
+        grads['W2'] = layer1_nonlin.T.dot(d_scores) + 2*reg*W2
+        #actual dB2 is the sum of Identity matrix * d_scores
+        grads['b2'] = np.sum(d_scores,axis=0)
+        d_layer1_nonlin = d_scores.dot(W2.T)
+        d_layer1_lin = d_layer1_nonlin
+        d_layer1_lin[ layer1_lin < 0 ] = 0
+        grads['W1'] = X.T.dot(d_layer1_lin) + 2*reg*W1
+        grads['b1'] = np.sum(d_layer1_lin,axis = 0)
+
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
@@ -140,6 +157,7 @@ class TwoLayerNet(object):
         """
         num_train = X.shape[0]
         iterations_per_epoch = max(num_train / batch_size, 1)
+        batch_size=np.minimum(batch_size,num_train)
 
         # Use SGD to optimize the parameters in self.model
         loss_history = []
@@ -155,8 +173,10 @@ class TwoLayerNet(object):
             # them in X_batch and y_batch respectively.                             #
             #########################################################################
             # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
-            pass
+            
+            batch_index=np.random.choice(num_train,batch_size,replace=False)
+            X_batch=X[batch_index]
+            y_batch=y[batch_index]
 
             # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
@@ -171,8 +191,8 @@ class TwoLayerNet(object):
             # stored in the grads dictionary defined above.                         #
             #########################################################################
             # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
-            pass
+            for p in ['W1','b1','W2','b2']:
+                self.params[p] -= learning_rate*grads[p]
 
             # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
@@ -218,7 +238,8 @@ class TwoLayerNet(object):
         ###########################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        scores = np.maximum(X.dot(self.params['W1'])+self.params['b1'],0).dot(self.params['W2']) + self.params['b2']
+        y_pred = np.argmax(scores,axis=1)
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
